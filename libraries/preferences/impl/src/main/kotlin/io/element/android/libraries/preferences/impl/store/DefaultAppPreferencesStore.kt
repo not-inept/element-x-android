@@ -20,6 +20,7 @@ import io.element.android.libraries.matrix.api.media.MediaPreviewValue
 import io.element.android.libraries.matrix.api.tracing.LogLevel
 import io.element.android.libraries.matrix.api.tracing.TraceLogPack
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
+import io.element.android.libraries.preferences.api.store.MessageLayoutMode
 import io.element.android.libraries.preferences.api.store.NotificationSound
 import io.element.android.libraries.preferences.api.store.NotificationSound.Companion.toStored
 import io.element.android.libraries.preferences.api.store.NotificationSoundChannelConfig
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.map
 private val developerModeKey = booleanPreferencesKey("developerMode")
 private val customElementCallBaseUrlKey = stringPreferencesKey("elementCallBaseUrl")
 private val themeKey = stringPreferencesKey("theme")
+private val messageLayoutModeKey = stringPreferencesKey("messageLayoutMode")
 private val hideInviteAvatarsKey = booleanPreferencesKey("hideInviteAvatars")
 private val timelineMediaPreviewValueKey = stringPreferencesKey("timelineMediaPreviewValue")
 private val liveLocationMinimumDistanceUpdateKey = intPreferencesKey("liveLocationMinimumDistanceUpdate")
@@ -88,6 +90,18 @@ class DefaultAppPreferencesStore(
     override fun getThemeFlow(): Flow<String?> {
         return store.data.map { prefs ->
             prefs[themeKey]
+        }
+    }
+
+    override suspend fun setMessageLayoutMode(mode: MessageLayoutMode) {
+        store.edit { prefs ->
+            prefs[messageLayoutModeKey] = mode.name
+        }
+    }
+
+    override fun getMessageLayoutModeFlow(): Flow<MessageLayoutMode> {
+        return store.data.map { prefs ->
+            MessageLayoutMode.fromStorage(prefs[messageLayoutModeKey])
         }
     }
 

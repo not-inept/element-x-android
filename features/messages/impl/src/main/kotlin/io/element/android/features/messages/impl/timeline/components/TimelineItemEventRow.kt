@@ -108,6 +108,7 @@ import io.element.android.libraries.designsystem.preview.USER_NAME_ALICE
 import io.element.android.libraries.designsystem.swipe.SwipeableActionsState
 import io.element.android.libraries.designsystem.swipe.rememberSwipeableActionsState
 import io.element.android.libraries.designsystem.text.toPx
+import io.element.android.libraries.designsystem.theme.LocalMessageLayoutMode
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.matrix.api.core.EventId
@@ -135,6 +136,7 @@ import io.element.android.libraries.matrix.ui.messages.reply.content
 import io.element.android.libraries.matrix.ui.messages.reply.eventId
 import io.element.android.libraries.matrix.ui.messages.sender.SenderName
 import io.element.android.libraries.matrix.ui.messages.sender.SenderNameMode
+import io.element.android.libraries.preferences.api.store.MessageLayoutMode
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.testtags.testTag
 import io.element.android.libraries.ui.strings.CommonPlurals
@@ -435,6 +437,27 @@ private fun TimelineItemEventRowContent(
     modifier: Modifier = Modifier,
     eventContentView: @Composable (Modifier, (ContentAvoidingLayoutData) -> Unit) -> Unit,
 ) {
+    if (LocalMessageLayoutMode.current == MessageLayoutMode.FLAT) {
+        FlatTimelineItemEventRowContent(
+            event = event,
+            timelineMode = timelineMode,
+            timelineProtectionState = timelineProtectionState,
+            timelineRoomInfo = timelineRoomInfo,
+            interactionSource = interactionSource,
+            onContentClick = onContentClick,
+            onLongClick = onLongClick,
+            inReplyToClick = inReplyToClick,
+            onUserDataClick = onUserDataClick,
+            onReactionClick = onReactionClick,
+            onReactionLongClick = onReactionLongClick,
+            onMoreReactionsClick = onMoreReactionsClick,
+            eventSink = eventSink,
+            modifier = modifier,
+            eventContentView = eventContentView,
+        )
+        return
+    }
+
     fun ConstrainScope.linkStartOrEnd(event: TimelineItem.Event) = if (event.isMine) {
         end.linkTo(parent.end)
     } else {
@@ -619,7 +642,7 @@ private fun MessageSenderInformation(
 
 @Suppress("MultipleEmitters") // False positive
 @Composable
-private fun MessageEventBubbleContent(
+internal fun MessageEventBubbleContent(
     event: TimelineItem.Event,
     timelineMode: Timeline.Mode,
     timelineProtectionState: TimelineProtectionState,
@@ -630,8 +653,13 @@ private fun MessageEventBubbleContent(
     // need to rename this modifier to prevent linter false positives
     @Suppress("ModifierNaming")
     bubbleModifier: Modifier = Modifier,
+    // In the flat layout there is no bubble to sit inside: the timestamp moves up to the
+    // sender header and the horizontal padding that used to inset content from the bubble
+    // edge is dropped, since the content is already indented under the avatar.
+    layoutMode: MessageLayoutMode = MessageLayoutMode.BUBBLES,
     eventContentView: @Composable (Modifier, (ContentAvoidingLayoutData) -> Unit) -> Unit,
 ) {
+    val isFlat = layoutMode == MessageLayoutMode.FLAT
     // Long clicks are not not automatically propagated from a `clickable`
     // to its `combinedClickable` parent so we do it manually
     fun onTimestampLongClick() = onMessageLongClick()
@@ -759,7 +787,12 @@ private fun MessageEventBubbleContent(
         val topPadding = if (inReplyToDetails != null) 0.dp else 8.dp
         val contentModifier = when (paddingBehaviour) {
             ContentPadding.Textual ->
-                Modifier.padding(start = 12.dp, end = 12.dp, top = topPadding, bottom = 8.dp)
+                if (isFlat) {
+                    // No bubble edge to inset from; the row already indents the content.
+                    Modifier.padding(top = topPadding, bottom = 0.dp)
+                } else {
+                    Modifier.padding(start = 12.dp, end = 12.dp, top = topPadding, bottom = 8.dp)
+                }
             ContentPadding.Media -> {
                 if (inReplyToDetails == null) {
                     Modifier
@@ -853,7 +886,12 @@ private fun MessageEventBubbleContent(
             event.content !is TimelineItemAttachmentsContent &&
             contentValidationState.hasError()
 
-    val timestampPosition = if (needsInvalidContentLayout) {
+    val timestampPosition = if (isFlat) {
+        // The flat layout renders the timestamp on the sender header line instead, so keep
+        // it out of the content flow entirely. This also bypasses ContentAvoidingLayout,
+        // which would otherwise reserve a gap for a timestamp that is never drawn.
+        TimestampPosition.Hidden
+    } else if (needsInvalidContentLayout) {
         // The invalid content view will be displayed in all these cases, independent of the event content
         TimestampPosition.Aligned
     } else {

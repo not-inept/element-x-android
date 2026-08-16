@@ -92,6 +92,15 @@ fun AdvancedSettingsView(
                 state.eventSink(AdvancedSettingsEvents.SetTheme(themeOption))
             }
         )
+        PreferenceDropdown(
+            title = stringResource(id = R.string.message_theme_title),
+            supportingText = stringResource(id = R.string.message_theme_description),
+            selectedOption = state.messageLayout,
+            options = state.availableMessageLayoutOptions,
+            onSelectOption = { messageLayoutOption ->
+                state.eventSink(AdvancedSettingsEvents.SetMessageLayout(messageLayoutOption))
+            }
+        )
         ListItem(
             content = {
                 Text(text = stringResource(id = CommonStrings.action_view_source))

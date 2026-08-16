@@ -25,6 +25,7 @@ import io.element.android.libraries.core.meta.BuildType
 import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
+import io.element.android.libraries.preferences.api.store.MessageLayoutMode
 
 val LocalBuildMeta = staticCompositionLocalOf {
     BuildMeta(
@@ -44,6 +45,15 @@ val LocalBuildMeta = staticCompositionLocalOf {
         flavorShortDescription = "aFlavorShort",
     )
 }
+
+/**
+ * The message layout the user has picked in Settings / Advanced.
+ *
+ * Provided by [ElementThemeApp], so every screen hosted under it — and every
+ * `@Preview`, which falls back to the default — can read it without threading
+ * it through composable signatures.
+ */
+val LocalMessageLayoutMode = staticCompositionLocalOf { MessageLayoutMode.Default }
 
 /**
  * Theme to use for all the regular screens of the application.
@@ -67,6 +77,9 @@ fun ElementThemeApp(
     val theme by remember(isBlackThemeAllowed) {
         appPreferencesStore.getThemeFlow().mapToTheme(allowBlackTheme = isBlackThemeAllowed)
     }.collectAsState(initial = Theme.System)
+    val messageLayoutMode by remember {
+        appPreferencesStore.getMessageLayoutModeFlow()
+    }.collectAsState(initial = MessageLayoutMode.Default)
     LaunchedEffect(theme) {
         AppCompatDelegate.setDefaultNightMode(
             when (theme) {
@@ -78,6 +91,7 @@ fun ElementThemeApp(
     }
     CompositionLocalProvider(
         LocalBuildMeta provides buildMeta,
+        LocalMessageLayoutMode provides messageLayoutMode,
     ) {
         ElementTheme(
             theme = theme,

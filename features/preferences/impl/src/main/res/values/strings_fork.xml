@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fork-only strings.
+
+  Kept out of localazy.xml on purpose: that file is regenerated wholesale by the
+  Localazy sync (see tools/localazy/generateLocalazyConfig.py), so anything added
+  there is lost on the next sync.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+  <string name="message_theme_title">Message theme</string>
+  <string name="message_theme_description">How messages are laid out in the timeline</string>
+  <string name="message_theme_bubbles">Bubbles</string>
+  <string name="message_theme_flat">Classic</string>
+</resources>

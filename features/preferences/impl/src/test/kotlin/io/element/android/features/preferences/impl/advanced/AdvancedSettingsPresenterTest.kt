@@ -18,6 +18,7 @@ import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
 import io.element.android.libraries.matrix.api.media.MediaPreviewValue
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
+import io.element.android.libraries.preferences.api.store.MessageLayoutMode
 import io.element.android.libraries.preferences.api.store.VideoCompressionPreset
 import io.element.android.libraries.preferences.test.InMemoryAppPreferencesStore
 import io.element.android.libraries.preferences.test.InMemorySessionPreferencesStore
@@ -207,6 +208,50 @@ class AdvancedSettingsPresenterTest {
             with(awaitItem()) {
                 assertThat(theme).isEqualTo(ThemeOption.System)
             }
+        }
+    }
+
+    @Test
+    fun `present - change message layout`() = runTest {
+        val presenter = createAdvancedSettingsPresenter()
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            // Skip until the initial data it loaded
+            skipItems(1)
+
+            with(awaitItem()) {
+                // Bubbles remain the default, so existing users see no change.
+                assertThat(messageLayout).isEqualTo(MessageLayoutOption.Bubbles)
+                assertThat(availableMessageLayoutOptions).isEqualTo(
+                    listOf(MessageLayoutOption.Bubbles, MessageLayoutOption.Flat).toImmutableList()
+                )
+                eventSink(AdvancedSettingsEvents.SetMessageLayout(MessageLayoutOption.Flat))
+            }
+            with(awaitItem()) {
+                assertThat(messageLayout).isEqualTo(MessageLayoutOption.Flat)
+                eventSink(AdvancedSettingsEvents.SetMessageLayout(MessageLayoutOption.Bubbles))
+            }
+            with(awaitItem()) {
+                assertThat(messageLayout).isEqualTo(MessageLayoutOption.Bubbles)
+            }
+        }
+    }
+
+    @Test
+    fun `present - message layout is read back from app preferences`() = runTest {
+        val presenter = createAdvancedSettingsPresenter(
+            appPreferencesStore = InMemoryAppPreferencesStore(messageLayoutMode = MessageLayoutMode.FLAT),
+        )
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            // The first emission carries the collectAsState initial value, not the stored one.
+            skipItems(1)
+            with(awaitItem()) {
+                assertThat(messageLayout).isEqualTo(MessageLayoutOption.Flat)
+            }
+            cancelAndIgnoreRemainingEvents()
         }
     }
 

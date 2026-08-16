@@ -12,6 +12,7 @@ import io.element.android.libraries.matrix.api.media.MediaPreviewValue
 import io.element.android.libraries.matrix.api.tracing.LogLevel
 import io.element.android.libraries.matrix.api.tracing.TraceLogPack
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
+import io.element.android.libraries.preferences.api.store.MessageLayoutMode
 import io.element.android.libraries.preferences.api.store.NotificationSound
 import io.element.android.libraries.preferences.api.store.NotificationSoundChannelConfig
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +25,7 @@ class InMemoryAppPreferencesStore(
     hideInviteAvatars: Boolean? = null,
     timelineMediaPreviewValue: MediaPreviewValue? = null,
     theme: String? = null,
+    messageLayoutMode: MessageLayoutMode = MessageLayoutMode.Default,
     liveLocationMinimumDistanceUpdate: Int = 10,
     logLevel: LogLevel = LogLevel.INFO,
     traceLogPacks: Set<TraceLogPack> = emptySet(),
@@ -37,6 +39,7 @@ class InMemoryAppPreferencesStore(
     private val isDeveloperModeEnabled = MutableStateFlow(isDeveloperModeEnabled)
     private val customElementCallBaseUrl = MutableStateFlow(customElementCallBaseUrl)
     private val theme = MutableStateFlow(theme)
+    private val messageLayoutMode = MutableStateFlow(messageLayoutMode)
     private val liveLocationMinimumDistanceUpdate = MutableStateFlow(liveLocationMinimumDistanceUpdate)
     private val logLevel = MutableStateFlow(logLevel)
     private val tracingLogPacks = MutableStateFlow(traceLogPacks)
@@ -71,6 +74,14 @@ class InMemoryAppPreferencesStore(
 
     override fun getThemeFlow(): Flow<String?> {
         return theme
+    }
+
+    override suspend fun setMessageLayoutMode(mode: MessageLayoutMode) {
+        this.messageLayoutMode.value = mode
+    }
+
+    override fun getMessageLayoutModeFlow(): Flow<MessageLayoutMode> {
+        return messageLayoutMode
     }
 
     override suspend fun setLiveLocationMinimumDistanceInMetersUpdate(value: Int) {

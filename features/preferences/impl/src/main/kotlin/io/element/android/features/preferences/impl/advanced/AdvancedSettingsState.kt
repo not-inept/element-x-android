@@ -13,6 +13,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.res.stringResource
 import io.element.android.features.preferences.impl.R
 import io.element.android.libraries.designsystem.components.preferences.DropdownOption
+import io.element.android.libraries.preferences.api.store.MessageLayoutMode
 import io.element.android.libraries.preferences.api.store.VideoCompressionPreset
 import kotlinx.collections.immutable.ImmutableList
 
@@ -22,6 +23,8 @@ data class AdvancedSettingsState(
     val mediaOptimizationState: MediaOptimizationState?,
     val theme: ThemeOption,
     val availableThemeOptions: ImmutableList<ThemeOption>,
+    val messageLayout: MessageLayoutOption,
+    val availableMessageLayoutOptions: ImmutableList<MessageLayoutOption>,
     val mediaPreviewConfigState: MediaPreviewConfigState,
     val liveLocationMinimumDistanceUpdate: Int?,
     val eventSink: (AdvancedSettingsEvents) -> Unit
@@ -63,5 +66,24 @@ enum class ThemeOption : DropdownOption {
         @Composable
         @ReadOnlyComposable
         override fun getText(): String = stringResource(R.string.theme_black)
+    }
+}
+
+/** The message layouts offered in Settings / Advanced, mapping onto [MessageLayoutMode]. */
+enum class MessageLayoutOption(val mode: MessageLayoutMode) : DropdownOption {
+    Bubbles(MessageLayoutMode.BUBBLES) {
+        @Composable
+        @ReadOnlyComposable
+        override fun getText(): String = stringResource(R.string.message_theme_bubbles)
+    },
+
+    Flat(MessageLayoutMode.FLAT) {
+        @Composable
+        @ReadOnlyComposable
+        override fun getText(): String = stringResource(R.string.message_theme_flat)
+    };
+
+    companion object {
+        fun from(mode: MessageLayoutMode): MessageLayoutOption = entries.first { it.mode == mode }
     }
 }

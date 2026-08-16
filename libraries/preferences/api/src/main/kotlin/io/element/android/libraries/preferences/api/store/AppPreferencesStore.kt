@@ -45,6 +45,14 @@ interface AppPreferencesStore {
     fun getThemeFlow(): Flow<String?>
 
     /**
+     * @param mode how message events should be laid out in the timeline.
+     */
+    suspend fun setMessageLayoutMode(mode: MessageLayoutMode)
+
+    /** The chosen message layout; defaults to [MessageLayoutMode.Default]. */
+    fun getMessageLayoutModeFlow(): Flow<MessageLayoutMode>
+
+    /**
      * @param value the distance in metres the user must move before a new live location is published.
      */
     suspend fun setLiveLocationMinimumDistanceInMetersUpdate(value: Int)

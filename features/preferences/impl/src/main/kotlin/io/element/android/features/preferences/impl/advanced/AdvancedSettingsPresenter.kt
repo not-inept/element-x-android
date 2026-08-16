@@ -22,6 +22,7 @@ import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
+import io.element.android.libraries.preferences.api.store.MessageLayoutMode
 import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
@@ -52,6 +53,13 @@ class AdvancedSettingsPresenter(
         val theme = remember(isBlackThemeAllowed) {
             appPreferencesStore.getThemeFlow().mapToTheme(isBlackThemeAllowed)
         }.collectAsState(initial = Theme.System)
+
+        val messageLayoutMode by remember {
+            appPreferencesStore.getMessageLayoutModeFlow()
+        }.collectAsState(initial = MessageLayoutMode.Default)
+        val messageLayoutOption by remember {
+            derivedStateOf { MessageLayoutOption.from(messageLayoutMode) }
+        }
 
         val liveLocationMinimumDistanceUpdate by produceState<Int?>(null) {
             appPreferencesStore.getLiveLocationMinimumDistanceInMetersUpdateFlow().collect { value = it }
@@ -119,6 +127,9 @@ class AdvancedSettingsPresenter(
                         ThemeOption.Light -> appPreferencesStore.setTheme(Theme.Light.name)
                     }
                 }
+                is AdvancedSettingsEvents.SetMessageLayout -> sessionCoroutineScope.launch {
+                    appPreferencesStore.setMessageLayoutMode(event.messageLayout.mode)
+                }
                 is AdvancedSettingsEvents.SetHideInviteAvatars -> mediaPreviewConfigStateStore.setHideInviteAvatars(event.value)
                 is AdvancedSettingsEvents.SetTimelineMediaPreviewValue -> mediaPreviewConfigStateStore.setTimelineMediaPreviewValue(event.value)
                 is AdvancedSettingsEvents.SetLiveLocationMinimumDistanceUpdate -> sessionCoroutineScope.launch {
@@ -139,6 +150,8 @@ class AdvancedSettingsPresenter(
             mediaOptimizationState = mediaOptimizationState,
             theme = themeOption,
             availableThemeOptions = availableThemeOptions,
+            messageLayout = messageLayoutOption,
+            availableMessageLayoutOptions = MessageLayoutOption.entries.toImmutableList(),
             mediaPreviewConfigState = mediaPreviewConfigState,
             liveLocationMinimumDistanceUpdate = liveLocationMinimumDistanceUpdate,
             eventSink = ::handleEvent,
