@@ -79,4 +79,17 @@ If you proceed, some of your settings may change."</string>
   <string name="troubleshoot_notifications_entry_point_push_history_title">"Push history"</string>
   <string name="troubleshoot_notifications_entry_point_section">"Troubleshoot"</string>
   <string name="troubleshoot_notifications_entry_point_title">"Troubleshoot notifications"</string>
+  <!-- Bubble (chat head) notification settings -->
+  <string name="screen_notification_settings_bubble_section_title">"Bubble notifications"</string>
+  <string name="screen_notification_settings_bubble_mode_label">"Show conversations as bubbles"</string>
+  <string name="screen_notification_settings_bubble_mode_dialog_title">"Bubble mode"</string>
+  <string name="screen_notification_settings_bubble_mode_all">"All conversations"</string>
+  <string name="screen_notification_settings_bubble_mode_dms_only">"Direct messages only"</string>
+  <string name="screen_notification_settings_bubble_mode_selected">"Selected rooms only"</string>
+  <!-- Labs - Chat heads -->
+  <string name="screen_labs_enable_bubbles">"Enable chat heads"</string>
+  <string name="screen_labs_test_bubble_title">"Test chat head"</string>
+  <string name="screen_labs_test_bubble_description">"Tap to show a floating chat head"</string>
+  <string name="screen_labs_overlay_permission_title">"Permission required"</string>
+  <string name="screen_labs_overlay_permission_description">"Tap to grant \"Draw over other apps\" permission for floating chat heads"</string>
 </resources>

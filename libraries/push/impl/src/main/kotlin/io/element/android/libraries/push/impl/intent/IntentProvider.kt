@@ -26,4 +26,14 @@ interface IntentProvider {
         eventId: EventId?,
         extras: Bundle? = null,
     ): Intent
+
+    /**
+     * Provide an intent for bubble notifications.
+     * This should point to a bubble-compatible Activity that can display
+     * the conversation in a floating window.
+     */
+    fun getBubbleIntent(
+        sessionId: SessionId,
+        roomId: RoomId,
+    ): Intent
 }

@@ -8,6 +8,7 @@
 
 package io.element.android.libraries.push.impl.notifications
 
+import android.content.Context
 import io.element.android.features.enterprise.api.EnterpriseService
 import io.element.android.features.enterprise.test.FakeEnterpriseService
 import io.element.android.libraries.matrix.api.user.MatrixUser
@@ -15,6 +16,9 @@ import io.element.android.libraries.matrix.test.AN_EVENT_ID
 import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.libraries.matrix.ui.media.test.FakeImageLoader
+import io.element.android.libraries.preferences.api.store.SessionPreferencesStoreFactory
+import io.element.android.libraries.preferences.test.FakeSessionPreferencesStoreFactory
+import io.element.android.libraries.preferences.test.InMemorySessionPreferencesStore
 import io.element.android.libraries.push.api.notifications.NotificationIdProvider
 import io.element.android.libraries.push.impl.notifications.fake.FakeActiveNotificationsProvider
 import io.element.android.libraries.push.impl.notifications.fake.FakeNotificationCreator
@@ -36,6 +40,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 
 private const val MY_USER_DISPLAY_NAME = "display-name"
 private const val MY_USER_AVATAR_URL = "avatar-url"
@@ -120,13 +125,19 @@ class NotificationRendererTest {
 }
 
 fun createNotificationRenderer(
+    context: Context = RuntimeEnvironment.getApplication(),
     notificationDisplayer: NotificationDisplayer = FakeNotificationDisplayer(),
     notificationDataFactory: NotificationDataFactory = FakeNotificationDataFactory(),
     enterpriseService: EnterpriseService = FakeEnterpriseService(),
     sessionStore: SessionStore = InMemorySessionStore(),
+    sessionPreferencesStoreFactory: SessionPreferencesStoreFactory = FakeSessionPreferencesStoreFactory(
+        getLambda = lambdaRecorder { _, _ -> InMemorySessionPreferencesStore() }
+    ),
 ) = NotificationRenderer(
+    context = context,
     notificationDisplayer = notificationDisplayer,
     notificationDataFactory = notificationDataFactory,
     enterpriseService = enterpriseService,
     sessionStore = sessionStore,
+    sessionPreferencesStoreFactory = sessionPreferencesStoreFactory,
 )

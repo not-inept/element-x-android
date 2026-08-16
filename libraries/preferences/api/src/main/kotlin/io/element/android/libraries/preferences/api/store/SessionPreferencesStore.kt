@@ -35,5 +35,16 @@ interface SessionPreferencesStore {
     suspend fun setVideoCompressionPreset(preset: VideoCompressionPreset)
     fun getVideoCompressionPreset(): Flow<VideoCompressionPreset>
 
+    // Bubble notification settings
+    suspend fun setBubblesEnabled(enabled: Boolean)
+    fun areBubblesEnabled(): Flow<Boolean>
+
+    suspend fun setBubbleMode(mode: String)
+    fun getBubbleMode(): Flow<String>
+
+    suspend fun setBubbleEnabledForRoom(roomId: String, enabled: Boolean)
+    fun isBubbleEnabledForRoom(roomId: String): Flow<Boolean>
+    fun getBubbleEnabledRoomIds(): Flow<Set<String>>
+
     suspend fun clear()
 }

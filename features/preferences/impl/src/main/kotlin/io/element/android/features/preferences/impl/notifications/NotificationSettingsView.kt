@@ -198,6 +198,7 @@ private fun NotificationSettingsContentView(
                 onCheckedChange = onInviteForMeNotificationsChange
             )
         }
+
         PreferenceCategory(title = stringResource(id = R.string.troubleshoot_notifications_entry_point_section)) {
             ListItem(
                 headlineContent = {

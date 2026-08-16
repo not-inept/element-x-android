@@ -8,9 +8,11 @@
 
 package io.element.android.features.roomdetails.impl.notificationsettings
 
+import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -30,10 +32,13 @@ import io.element.android.libraries.matrix.api.notificationsettings.Notification
 import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
 import io.element.android.libraries.matrix.api.room.RoomNotificationSettings
+import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
+import io.element.android.libraries.push.api.bubble.BubbleMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
@@ -42,6 +47,7 @@ import kotlin.time.Duration.Companion.seconds
 class RoomNotificationSettingsPresenter(
     private val room: JoinedRoom,
     private val notificationSettingsService: NotificationSettingsService,
+    private val sessionPreferencesStore: SessionPreferencesStore,
     @Assisted private val showUserDefinedSettingStyle: Boolean,
 ) : Presenter<RoomNotificationSettingsState> {
     @AssistedFactory
@@ -100,6 +106,27 @@ class RoomNotificationSettingsPresenter(
                 !notificationSettingsService.canHomeServerPushEncryptedEventsToDevice().getOrDefault(true)
         }
 
+        // Bubble settings - only show if supported (Android 11+) and mode is SELECTED
+        val isBubblesSupported = remember { Build.VERSION.SDK_INT >= Build.VERSION_CODES.R }
+        val bubbleMode by remember {
+            sessionPreferencesStore.getBubbleMode().map { modeString ->
+                BubbleMode.entries.find { it.name == modeString } ?: BubbleMode.DMS_ONLY
+            }
+        }.collectAsState(initial = BubbleMode.DMS_ONLY)
+
+        val isBubbleEnabledForRoom by remember {
+            sessionPreferencesStore.isBubbleEnabledForRoom(room.roomId.value)
+        }.collectAsState(initial = false)
+
+        val bubbleSettings = if (isBubblesSupported && bubbleMode == BubbleMode.SELECTED) {
+            RoomNotificationSettingsState.BubbleSettings(
+                isEnabled = isBubbleEnabledForRoom,
+                globalMode = bubbleMode,
+            )
+        } else {
+            null
+        }
+
         fun handleEvent(event: RoomNotificationSettingsEvents) {
             when (event) {
                 is RoomNotificationSettingsEvents.ChangeRoomNotificationMode -> {
@@ -123,6 +150,9 @@ class RoomNotificationSettingsPresenter(
                 RoomNotificationSettingsEvents.ClearRestoreDefaultError -> {
                     restoreDefaultAction.value = AsyncAction.Uninitialized
                 }
+                is RoomNotificationSettingsEvents.SetBubbleEnabled -> {
+                    localCoroutineScope.setBubbleEnabledForRoom(event.enabled)
+                }
             }
         }
 
@@ -136,6 +166,7 @@ class RoomNotificationSettingsPresenter(
             setNotificationSettingAction = setNotificationSettingAction.value,
             restoreDefaultAction = restoreDefaultAction.value,
             displayMentionsOnlyDisclaimer = shouldDisplayMentionsOnlyDisclaimer,
+            bubbleSettings = bubbleSettings,
             eventSink = ::handleEvent,
         )
     }
@@ -204,5 +235,9 @@ class RoomNotificationSettingsPresenter(
             }
             result.getOrThrow()
         }.runCatchingUpdatingState(action)
+    }
+
+    private fun CoroutineScope.setBubbleEnabledForRoom(enabled: Boolean) = launch {
+        sessionPreferencesStore.setBubbleEnabledForRoom(room.roomId.value, enabled)
     }
 }

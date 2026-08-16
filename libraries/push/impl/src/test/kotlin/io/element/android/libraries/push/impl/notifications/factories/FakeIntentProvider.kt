@@ -24,4 +24,9 @@ class FakeIntentProvider : IntentProvider {
         eventId: EventId?,
         extras: Bundle?,
     ) = Intent(Intent.ACTION_VIEW)
+
+    override fun getBubbleIntent(
+        sessionId: SessionId,
+        roomId: RoomId,
+    ) = Intent(Intent.ACTION_VIEW)
 }

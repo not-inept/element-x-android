@@ -14,6 +14,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import io.element.android.libraries.androidutils.file.safeDelete
 import io.element.android.libraries.androidutils.hash.hash
@@ -47,6 +48,9 @@ class DefaultSessionPreferencesStore(
     private val skipSessionVerification = booleanPreferencesKey("skipSessionVerification")
     private val compressImages = booleanPreferencesKey("compressMedia")
     private val compressMediaPreset = stringPreferencesKey("compressMediaPreset")
+    private val bubblesEnabledKey = booleanPreferencesKey("bubblesEnabled")
+    private val bubbleModeKey = stringPreferencesKey("bubbleMode")
+    private val bubbleEnabledRoomIdsKey = stringSetPreferencesKey("bubbleEnabledRoomIds")
 
     private val dataStoreFile = storeFile(context, sessionId)
     private val store = PreferenceDataStoreFactory.create(
@@ -93,6 +97,37 @@ class DefaultSessionPreferencesStore(
     override suspend fun setVideoCompressionPreset(preset: VideoCompressionPreset) = update(compressMediaPreset, preset.name)
     override fun getVideoCompressionPreset(): Flow<VideoCompressionPreset> = get(compressMediaPreset) { VideoCompressionPreset.STANDARD.name }
         .map { tryOrNull { VideoCompressionPreset.valueOf(it) } ?: VideoCompressionPreset.STANDARD }
+
+    // Bubble notification settings
+    override suspend fun setBubblesEnabled(enabled: Boolean) = update(bubblesEnabledKey, enabled)
+    override fun areBubblesEnabled(): Flow<Boolean> = get(bubblesEnabledKey) { false }
+
+    override suspend fun setBubbleMode(mode: String) = update(bubbleModeKey, mode)
+    override fun getBubbleMode(): Flow<String> = get(bubbleModeKey) { "DMS_ONLY" }
+
+    override suspend fun setBubbleEnabledForRoom(roomId: String, enabled: Boolean) {
+        store.edit { prefs ->
+            val currentSet = prefs[bubbleEnabledRoomIdsKey] ?: emptySet()
+            prefs[bubbleEnabledRoomIdsKey] = if (enabled) {
+                currentSet + roomId
+            } else {
+                currentSet - roomId
+            }
+        }
+    }
+
+    override fun isBubbleEnabledForRoom(roomId: String): Flow<Boolean> {
+        return store.data.map { prefs ->
+            val enabledRooms = prefs[bubbleEnabledRoomIdsKey] ?: emptySet()
+            roomId in enabledRooms
+        }
+    }
+
+    override fun getBubbleEnabledRoomIds(): Flow<Set<String>> {
+        return store.data.map { prefs ->
+            prefs[bubbleEnabledRoomIdsKey] ?: emptySet()
+        }
+    }
 
     override suspend fun clear() {
         dataStoreFile.safeDelete()

@@ -112,6 +112,10 @@
   <string name="screen_room_notification_settings_mode_all_messages">"All messages"</string>
   <string name="screen_room_notification_settings_mode_mentions_and_keywords">"Mentions and Keywords only"</string>
   <string name="screen_room_notification_settings_room_custom_settings_title">"In this room, notify me for"</string>
+  <!-- Per-room bubble notification settings -->
+  <string name="screen_room_notification_settings_bubble_section_title">"Bubble notifications"</string>
+  <string name="screen_room_notification_settings_bubble_toggle_title">"Show as bubble"</string>
+  <string name="screen_room_notification_settings_bubble_toggle_subtitle">"Show this conversation as a floating bubble"</string>
   <string name="screen_room_roles_and_permissions_admins">"Admins"</string>
   <string name="screen_room_roles_and_permissions_admins_and_owners">"Admins and owners"</string>
   <string name="screen_room_roles_and_permissions_change_my_role">"Change my role"</string>

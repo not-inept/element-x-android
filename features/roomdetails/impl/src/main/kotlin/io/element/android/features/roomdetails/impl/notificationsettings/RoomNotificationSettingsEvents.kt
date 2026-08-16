@@ -16,4 +16,5 @@ sealed interface RoomNotificationSettingsEvents {
     data object DeleteCustomNotification : RoomNotificationSettingsEvents
     data object ClearSetNotificationError : RoomNotificationSettingsEvents
     data object ClearRestoreDefaultError : RoomNotificationSettingsEvents
+    data class SetBubbleEnabled(val enabled: Boolean) : RoomNotificationSettingsEvents
 }

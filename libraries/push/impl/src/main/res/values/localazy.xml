@@ -94,4 +94,7 @@
   <string name="troubleshoot_notifications_test_push_loop_back_failure_4">"Error, timeout waiting for push."</string>
   <string name="troubleshoot_notifications_test_push_loop_back_success">"Push loop back took %1$d ms."</string>
   <string name="troubleshoot_notifications_test_push_loop_back_title">"Test Push loop back"</string>
+  <!-- Chat heads -->
+  <string name="chat_head_avatar_description">"Chat head avatar"</string>
+  <string name="chat_head_message_hint">"Type a message…"</string>
 </resources>

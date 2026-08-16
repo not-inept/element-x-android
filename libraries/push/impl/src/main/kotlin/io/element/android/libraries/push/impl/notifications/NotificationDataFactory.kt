@@ -94,6 +94,7 @@ class DefaultNotificationDataFactory(
                     existingNotification = getExistingNotificationForMessages(notificationAccountParams.user.userId, roomId, threadId),
                     notificationAccountParams = notificationAccountParams,
                 )
+                val latestEvent = events.maxByOrNull { it.timestamp }
                 RoomNotification(
                     notification = notification,
                     roomId = roomId,
@@ -101,7 +102,11 @@ class DefaultNotificationDataFactory(
                     summaryLine = createRoomMessagesGroupSummaryLine(events, roomName, isDm),
                     messageCount = events.size,
                     latestTimestamp = events.maxOf { it.timestamp },
-                    shouldBing = events.any { it.noisy }
+                    shouldBing = events.any { it.noisy },
+                    isDm = isDm,
+                    senderName = latestEvent?.senderDisambiguatedDisplayName,
+                    senderAvatarPath = latestEvent?.senderAvatarPath,
+                    sessionId = latestEvent?.sessionId ?: notificationAccountParams.user.userId,
                 )
             }
         }
@@ -234,6 +239,10 @@ data class RoomNotification(
     val messageCount: Int,
     val latestTimestamp: Long,
     val shouldBing: Boolean,
+    val isDm: Boolean,
+    val senderName: String?,
+    val senderAvatarPath: String?,
+    val sessionId: SessionId,
 ) {
     fun isDataEqualTo(other: RoomNotification): Boolean {
         return notification == other.notification &&
@@ -242,7 +251,11 @@ data class RoomNotification(
             summaryLine.toString() == other.summaryLine.toString() &&
             messageCount == other.messageCount &&
             latestTimestamp == other.latestTimestamp &&
-            shouldBing == other.shouldBing
+            shouldBing == other.shouldBing &&
+            isDm == other.isDm &&
+            senderName == other.senderName &&
+            senderAvatarPath == other.senderAvatarPath &&
+            sessionId == other.sessionId
     }
 }
 

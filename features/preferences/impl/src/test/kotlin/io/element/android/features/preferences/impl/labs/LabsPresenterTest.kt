@@ -15,6 +15,10 @@ import io.element.android.libraries.featureflag.api.Feature
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.featureflag.test.FakeFeature
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
+import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
+import io.element.android.libraries.preferences.test.InMemorySessionPreferencesStore
+import io.element.android.libraries.push.api.bubble.BubbleTestService
+import io.element.android.libraries.push.test.FakeBubbleTestService
 import io.element.android.services.toolbox.test.strings.FakeStringProvider
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.lambda.value
@@ -110,11 +114,15 @@ class LabsPresenterTest {
     private fun createLabsPresenter(
         getAvailableFeaturesResult: (Boolean, Boolean) -> List<Feature> = { _, _ -> emptyList() },
         clearCacheUseCase: ClearCacheUseCase = FakeClearCacheUseCase(),
+        sessionPreferencesStore: SessionPreferencesStore = InMemorySessionPreferencesStore(),
+        bubbleTestService: BubbleTestService = FakeBubbleTestService(),
     ): LabsPresenter {
         return LabsPresenter(
             stringProvider = FakeStringProvider(),
             featureFlagService = FakeFeatureFlagService(getAvailableFeaturesResult = getAvailableFeaturesResult),
             clearCacheUseCase = clearCacheUseCase,
+            sessionPreferencesStore = sessionPreferencesStore,
+            bubbleTestService = bubbleTestService,
         )
     }
 }

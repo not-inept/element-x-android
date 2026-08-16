@@ -9,10 +9,19 @@
 package io.element.android.features.preferences.impl.labs
 
 import io.element.android.libraries.featureflag.ui.model.FeatureUiModel
+import io.element.android.libraries.push.api.bubble.BubbleMode
 import kotlinx.collections.immutable.ImmutableList
 
 data class LabsState(
     val features: ImmutableList<FeatureUiModel>,
     val isApplyingChanges: Boolean,
+    val bubbleSettings: BubbleSettings?,
     val eventSink: (LabsEvents) -> Unit,
-)
+) {
+    data class BubbleSettings(
+        val isEnabled: Boolean,
+        val mode: BubbleMode,
+        val showModeDialog: Boolean,
+        val overlayPermissionGranted: Boolean,
+    )
+}

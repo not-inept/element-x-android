@@ -39,6 +39,7 @@ import io.element.android.libraries.push.impl.notifications.factories.action.Acc
 import io.element.android.libraries.push.impl.notifications.factories.action.MarkAsReadActionFactory
 import io.element.android.libraries.push.impl.notifications.factories.action.QuickReplyActionFactory
 import io.element.android.libraries.push.impl.notifications.factories.action.RejectInvitationActionFactory
+import io.element.android.libraries.push.impl.notifications.bubble.BubbleMetadataFactory
 import io.element.android.libraries.push.impl.notifications.model.FallbackNotifiableEvent
 import io.element.android.libraries.push.impl.notifications.model.InviteNotifiableEvent
 import io.element.android.libraries.push.impl.notifications.model.NotifiableMessageEvent
@@ -121,6 +122,7 @@ class DefaultNotificationCreator(
     private val bitmapLoader: NotificationBitmapLoader,
     private val acceptInvitationActionFactory: AcceptInvitationActionFactory,
     private val rejectInvitationActionFactory: RejectInvitationActionFactory,
+    private val bubbleMetadataFactory: BubbleMetadataFactory,
 ) : NotificationCreator {
     /**
      * Create a notification for a Room.
@@ -193,6 +195,21 @@ class DefaultNotificationCreator(
             roomIsGroup = !roomInfo.isDm,
         )
         messagingStyle.addMessagesFromEvents(events, imageLoader)
+
+        // Create bubble metadata for DM conversations (Android 11+)
+        val bubbleMetadata = if (threadId == null) {
+            bubbleMetadataFactory.createBubbleMetadata(
+                sessionId = roomInfo.sessionId,
+                roomId = roomInfo.roomId,
+                roomName = roomInfo.roomDisplayName,
+                roomAvatarUrl = events.lastOrNull()?.roomAvatarPath,
+                isDm = roomInfo.isDm,
+                imageLoader = imageLoader,
+            )
+        } else {
+            null // Don't show bubbles for thread notifications
+        }
+
         return builder
             .setCategory(category)
             .setNumber(events.size)
@@ -221,6 +238,8 @@ class DefaultNotificationCreator(
                     val latestEventId = events.lastOrNull()?.eventId
                     addAction(quickReplyActionFactory.create(roomInfo, latestEventId, threadId))
                 }
+                // Add bubble metadata for chat heads (Android 11+)
+                bubbleMetadata?.let { setBubbleMetadata(it) }
             }
             .setTicker(tickerText)
             .build()

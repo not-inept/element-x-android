@@ -12,6 +12,7 @@ import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
 import io.element.android.libraries.matrix.api.room.RoomNotificationSettings
+import io.element.android.libraries.push.api.bubble.BubbleMode
 
 data class RoomNotificationSettingsState(
     val showUserDefinedSettingStyle: Boolean,
@@ -23,8 +24,20 @@ data class RoomNotificationSettingsState(
     val setNotificationSettingAction: AsyncAction<Unit>,
     val restoreDefaultAction: AsyncAction<Unit>,
     val displayMentionsOnlyDisclaimer: Boolean,
+    val bubbleSettings: BubbleSettings?,
     val eventSink: (RoomNotificationSettingsEvents) -> Unit
-)
+) {
+    /**
+     * Settings for bubble notifications for this specific room.
+     * Only available on Android 11+ (API 30+) when global bubble mode is SELECTED.
+     */
+    data class BubbleSettings(
+        /** Whether bubbles are enabled for this specific room */
+        val isEnabled: Boolean,
+        /** The global bubble mode - the toggle is only shown when mode is SELECTED */
+        val globalMode: BubbleMode,
+    )
+}
 
 val RoomNotificationSettingsState.displayNotificationMode: RoomNotificationMode? get() {
     return pendingRoomNotificationMode ?: roomNotificationSettings.dataOrNull()?.mode

@@ -12,6 +12,7 @@ import io.element.android.libraries.preferences.api.store.SessionPreferencesStor
 import io.element.android.libraries.preferences.api.store.VideoCompressionPreset
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 
 class InMemorySessionPreferencesStore(
     isSharePresenceEnabled: Boolean = true,
@@ -22,6 +23,9 @@ class InMemorySessionPreferencesStore(
     isSessionVerificationSkipped: Boolean = false,
     doesCompressMedia: Boolean = true,
     videoCompressionPreset: VideoCompressionPreset = VideoCompressionPreset.STANDARD,
+    bubblesEnabled: Boolean = false,
+    bubbleMode: String = "DMS_ONLY",
+    bubbleEnabledRoomIds: Set<String> = emptySet(),
 ) : SessionPreferencesStore {
     private val isSharePresenceEnabled = MutableStateFlow(isSharePresenceEnabled)
     private val isSendPublicReadReceiptsEnabled = MutableStateFlow(isSendPublicReadReceiptsEnabled)
@@ -31,6 +35,9 @@ class InMemorySessionPreferencesStore(
     private val isSessionVerificationSkipped = MutableStateFlow(isSessionVerificationSkipped)
     private val doesCompressMedia = MutableStateFlow(doesCompressMedia)
     private val videoCompressionPreset = MutableStateFlow(videoCompressionPreset)
+    private val bubblesEnabled = MutableStateFlow(bubblesEnabled)
+    private val bubbleMode = MutableStateFlow(bubbleMode)
+    private val bubbleEnabledRoomIds = MutableStateFlow(bubbleEnabledRoomIds)
     var clearCallCount = 0
         private set
 
@@ -83,6 +90,31 @@ class InMemorySessionPreferencesStore(
     override fun getVideoCompressionPreset(): Flow<VideoCompressionPreset> {
         return videoCompressionPreset
     }
+
+    override suspend fun setBubblesEnabled(enabled: Boolean) {
+        bubblesEnabled.tryEmit(enabled)
+    }
+
+    override fun areBubblesEnabled(): Flow<Boolean> = bubblesEnabled
+
+    override suspend fun setBubbleMode(mode: String) {
+        bubbleMode.tryEmit(mode)
+    }
+
+    override fun getBubbleMode(): Flow<String> = bubbleMode
+
+    override suspend fun setBubbleEnabledForRoom(roomId: String, enabled: Boolean) {
+        val current = bubbleEnabledRoomIds.value
+        bubbleEnabledRoomIds.tryEmit(
+            if (enabled) current + roomId else current - roomId
+        )
+    }
+
+    override fun isBubbleEnabledForRoom(roomId: String): Flow<Boolean> {
+        return bubbleEnabledRoomIds.map { roomId in it }
+    }
+
+    override fun getBubbleEnabledRoomIds(): Flow<Set<String>> = bubbleEnabledRoomIds
 
     override suspend fun clear() {
         clearCallCount++

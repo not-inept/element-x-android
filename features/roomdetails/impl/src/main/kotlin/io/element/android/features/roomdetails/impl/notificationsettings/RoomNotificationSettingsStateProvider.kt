@@ -31,6 +31,7 @@ internal class RoomNotificationSettingsStateProvider : PreviewParameterProvider<
         setNotificationSettingAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
         restoreDefaultAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
         displayMentionsOnlyDisclaimer: Boolean = false,
+        bubbleSettings: RoomNotificationSettingsState.BubbleSettings? = null,
     ): RoomNotificationSettingsState {
         return RoomNotificationSettingsState(
             showUserDefinedSettingStyle = false,
@@ -45,6 +46,7 @@ internal class RoomNotificationSettingsStateProvider : PreviewParameterProvider<
             setNotificationSettingAction = setNotificationSettingAction,
             restoreDefaultAction = restoreDefaultAction,
             displayMentionsOnlyDisclaimer = displayMentionsOnlyDisclaimer,
+            bubbleSettings = bubbleSettings,
             eventSink = { },
         )
     }

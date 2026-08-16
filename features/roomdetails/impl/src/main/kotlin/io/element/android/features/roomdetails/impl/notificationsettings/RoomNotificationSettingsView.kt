@@ -157,6 +157,20 @@ private fun RoomSpecificNotificationSettingsView(
                 errorMessage = { stringResource(R.string.screen_notification_settings_edit_failed_updating_default_mode) },
                 onErrorDismiss = { state.eventSink(RoomNotificationSettingsEvents.ClearRestoreDefaultError) },
             )
+
+            // Show bubble toggle when mode is SELECTED
+            state.bubbleSettings?.let { bubbleSettings ->
+                PreferenceCategory(title = stringResource(id = R.string.screen_room_notification_settings_bubble_section_title)) {
+                    PreferenceSwitch(
+                        title = stringResource(id = R.string.screen_room_notification_settings_bubble_toggle_title),
+                        subtitle = stringResource(id = R.string.screen_room_notification_settings_bubble_toggle_subtitle),
+                        isChecked = bubbleSettings.isEnabled,
+                        onCheckedChange = { enabled ->
+                            state.eventSink(RoomNotificationSettingsEvents.SetBubbleEnabled(enabled))
+                        }
+                    )
+                }
+            }
         }
     }
 }
