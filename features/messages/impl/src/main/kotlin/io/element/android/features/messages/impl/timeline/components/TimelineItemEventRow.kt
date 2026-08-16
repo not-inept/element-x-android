@@ -289,17 +289,21 @@ fun TimelineItemEventRow(
         }
 
         if (displayThreadSummaries && timelineMode !is Timeline.Mode.Thread && event.threadInfo is TimelineItemThreadInfo.ThreadRoot) {
+            // The flat layout keeps own messages indistinguishable from everyone else's, so
+            // the summary is start-aligned and untinted there regardless of who sent it.
+            val isFlat = LocalMessageLayoutMode.current == MessageLayoutMode.FLAT
             ThreadSummaryView(
-                modifier = if (event.isMine) {
-                    Modifier
+                modifier = when {
+                    isFlat -> Modifier.padding(start = FLAT_CONTENT_INDENT, end = FLAT_ROW_HORIZONTAL_PADDING)
+                    event.isMine -> Modifier
                         .align(Alignment.End)
                         .padding(end = 16.dp)
-                } else {
-                    if (timelineRoomInfo.isDm) Modifier else Modifier.padding(start = 16.dp)
+                    timelineRoomInfo.isDm -> Modifier
+                    else -> Modifier.padding(start = 16.dp)
                 }.padding(top = 2.dp),
                 threadSummary = event.threadInfo.summary,
                 latestEventText = event.threadInfo.latestEventText,
-                isOutgoing = event.isMine,
+                isOutgoing = !isFlat && event.isMine,
                 onClick = {
                     event.eventId?.let {
                         eventSink(TimelineEvent.OpenThread(it.toThreadId(), null))

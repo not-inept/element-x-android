@@ -59,7 +59,7 @@ import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.libraries.ui.utils.a11y.isTalkbackActive
 
 /** Horizontal inset shared by the header row and the message body. */
-private val FLAT_ROW_HORIZONTAL_PADDING = 16.dp
+internal val FLAT_ROW_HORIZONTAL_PADDING = 16.dp
 
 /** Gap between the avatar and the sender name. */
 private val FLAT_AVATAR_SPACING = 8.dp
@@ -68,7 +68,13 @@ private val FLAT_AVATAR_SPACING = 8.dp
  * How far the message body is indented, so that it lines up under the sender name
  * rather than under the avatar.
  */
-private val FLAT_CONTENT_INDENT = AvatarSize.TimelineSender.dp + FLAT_AVATAR_SPACING
+internal val FLAT_CONTENT_INDENT = AvatarSize.TimelineSender.dp + FLAT_AVATAR_SPACING
+
+/**
+ * Media has no bubble constraining it any more, so cap it explicitly. Text is
+ * deliberately left unconstrained: running the full width is the point of this layout.
+ */
+private const val FLAT_MEDIA_WIDTH_RATIO = 0.72f
 
 /**
  * The "classic" message layout: no bubbles, everything aligned to the start.
@@ -125,6 +131,13 @@ internal fun FlatTimelineItemEventRowContent(
                 interactionSource = interactionSource,
             )
         }
+        // Media used to be capped by the bubble's own widthIn; without a bubble it would
+        // otherwise stretch the full width of the timeline.
+        val widthModifier = if (event.content.isMedia) {
+            Modifier.fillMaxWidth(FLAT_MEDIA_WIDTH_RATIO)
+        } else {
+            Modifier
+        }
         MessageEventBubbleContent(
             event = event,
             timelineMode = timelineMode,
@@ -139,6 +152,7 @@ internal fun FlatTimelineItemEventRowContent(
                     start = FLAT_ROW_HORIZONTAL_PADDING + FLAT_CONTENT_INDENT,
                     end = FLAT_ROW_HORIZONTAL_PADDING,
                 )
+                .then(widthModifier)
                 // Media has no bubble to clip it any more, so round it off here.
                 .clip(RoundedCornerShape(8.dp))
                 .then(clickableModifier),
