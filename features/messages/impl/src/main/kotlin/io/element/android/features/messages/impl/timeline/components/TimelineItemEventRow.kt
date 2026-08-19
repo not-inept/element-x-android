@@ -875,7 +875,11 @@ internal fun MessageEventBubbleContent(
         }
         if (inReplyToDetails != null) {
             // Use SubComposeLayout only if necessary as it can have consequences on the performance.
-            EqualWidthColumn(spacing = 8.dp) {
+            // `modifier` must be applied here too: in the flat layout it carries the indent, the
+            // media width cap, the clip and the tap/long-press target, so dropping it on the reply
+            // path made every reply render edge-to-edge and swallow clicks. It is empty in the
+            // bubble layout, where MessageEventBubble carries all of that instead.
+            EqualWidthColumn(modifier = modifier, spacing = 8.dp) {
                 threadDecoration()
                 inReplyTo(inReplyToDetails)
                 contentWithTimestamp()

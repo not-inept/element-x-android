@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ripple
@@ -37,22 +39,26 @@ import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.messages.impl.timeline.TimelineEvent
 import io.element.android.features.messages.impl.timeline.TimelineRoomInfo
 import io.element.android.features.messages.impl.timeline.aTimelineItemEvent
+import io.element.android.features.messages.impl.timeline.aTimelineItemReactions
 import io.element.android.features.messages.impl.timeline.components.layout.ContentAvoidingLayoutData
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.TimelineItemGroupPosition
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemImageContent
+import io.element.android.features.messages.impl.timeline.model.event.isEdited
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemTextContent
 import io.element.android.features.messages.impl.timeline.protection.TimelineProtectionState
 import io.element.android.libraries.designsystem.colors.AvatarColorsProvider
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.components.avatar.AvatarType
+import io.element.android.libraries.designsystem.modifiers.onKeyboardContextMenuAction
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.LocalMessageLayoutMode
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageShield
+import io.element.android.libraries.matrix.ui.messages.reply.InReplyToDetailsProvider
 import io.element.android.libraries.matrix.ui.messages.sender.SenderName
 import io.element.android.libraries.matrix.ui.messages.sender.SenderNameMode
 import io.element.android.libraries.preferences.api.store.MessageLayoutMode
@@ -114,10 +120,12 @@ internal fun FlatTimelineItemEventRowContent(
     val isEventPinned = timelineRoomInfo.pinnedEventIds.contains(event.eventId)
 
     // TimelineEventTimestampView is the only thing in the timeline that draws the send-failure
-    // icon and the encryption shield, and the only tap target for the shield dialog. The header
-    // carries it, so a message without a header would silently drop both. Put it back inline
-    // for those, and only for those, so the layout stays clean in the common case.
-    val needsInlineTimestamp = !showHeader && (event.failedToSend || event.messageShield != null)
+    // icon, the encryption shield and the "(edited)" marker, and it is the only tap target for
+    // the shield dialog. The header carries it, so a message without a header would silently
+    // drop all three. Put it back inline for those, and only for those, so the layout stays
+    // clean in the common case.
+    val needsInlineTimestamp = !showHeader &&
+        (event.failedToSend || event.messageShield != null || event.content.isEdited())
 
     Column(modifier = modifier.fillMaxWidth()) {
         if (showHeader) {
@@ -133,41 +141,62 @@ internal fun FlatTimelineItemEventRowContent(
         val clickableModifier = if (isTalkbackActive()) {
             Modifier
         } else {
-            Modifier.combinedClickable(
-                onClick = onContentClick,
-                onLongClick = onLongClick,
-                indication = ripple(),
-                interactionSource = interactionSource,
+            Modifier
+                .combinedClickable(
+                    onClick = onContentClick,
+                    onLongClick = onLongClick,
+                    indication = ripple(),
+                    interactionSource = interactionSource,
+                )
+                // Matches MessageEventBubble: opens the action list from a hardware keyboard.
+                .onKeyboardContextMenuAction(onLongClick)
+        }
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            // A message with no header has an empty avatar gutter; put the pinned marker there,
+            // so pinning the middle of a run is still visible. The bubble layout gates its pin
+            // icon on isEventPinned alone, with no group-position condition.
+            if (isEventPinned && !showHeader) {
+                Icon(
+                    imageVector = CompoundIcons.PinSolid(),
+                    contentDescription = stringResource(CommonStrings.common_pinned),
+                    tint = ElementTheme.colors.iconTertiary,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = FLAT_ROW_HORIZONTAL_PADDING, top = 6.dp)
+                        .size(16.dp),
+                )
+            }
+            // Media used to be capped by the bubble's own widthIn; without a bubble it would
+            // otherwise stretch the full width of the timeline. widthIn rather than
+            // fillMaxWidth(fraction), which would pin small media (files, voice, stickers) to
+            // exactly the ratio and leave the clip and tap target hanging in empty space.
+            val widthModifier = if (event.content.isMedia) {
+                Modifier.widthIn(max = maxWidth * FLAT_MEDIA_WIDTH_RATIO)
+            } else {
+                Modifier
+            }
+            MessageEventBubbleContent(
+                event = event,
+                timelineMode = timelineMode,
+                timelineProtectionState = timelineProtectionState,
+                onMessageLongClick = onLongClick,
+                inReplyToClick = inReplyToClick,
+                eventSink = eventSink,
+                layoutMode = MessageLayoutMode.FLAT,
+                hideTimestamp = !needsInlineTimestamp,
+                bubbleModifier = Modifier
+                    .testTag(TestTags.messageBubble)
+                    .padding(
+                        start = FLAT_ROW_HORIZONTAL_PADDING + FLAT_CONTENT_INDENT,
+                        end = FLAT_ROW_HORIZONTAL_PADDING,
+                    )
+                    .then(widthModifier)
+                    // Media has no bubble to clip it any more, so round it off here.
+                    .clip(RoundedCornerShape(8.dp))
+                    .then(clickableModifier),
+                eventContentView = eventContentView,
             )
         }
-        // Media used to be capped by the bubble's own widthIn; without a bubble it would
-        // otherwise stretch the full width of the timeline.
-        val widthModifier = if (event.content.isMedia) {
-            Modifier.fillMaxWidth(FLAT_MEDIA_WIDTH_RATIO)
-        } else {
-            Modifier
-        }
-        MessageEventBubbleContent(
-            event = event,
-            timelineMode = timelineMode,
-            timelineProtectionState = timelineProtectionState,
-            onMessageLongClick = onLongClick,
-            inReplyToClick = inReplyToClick,
-            eventSink = eventSink,
-            layoutMode = MessageLayoutMode.FLAT,
-            hideTimestamp = !needsInlineTimestamp,
-            bubbleModifier = Modifier
-                .testTag(TestTags.messageBubble)
-                .padding(
-                    start = FLAT_ROW_HORIZONTAL_PADDING + FLAT_CONTENT_INDENT,
-                    end = FLAT_ROW_HORIZONTAL_PADDING,
-                )
-                .then(widthModifier)
-                // Media has no bubble to clip it any more, so round it off here.
-                .clip(RoundedCornerShape(8.dp))
-                .then(clickableModifier),
-            eventContentView = eventContentView,
-        )
 
         if (event.reactionsState.reactions.isNotEmpty()) {
             TimelineItemReactionsView(
@@ -289,6 +318,7 @@ internal fun FlatTimelineItemEventRowPreview() = ElementPreview {
                     isMine = false,
                     content = aTimelineItemTextContent(body = "I can bring dessert."),
                     groupPosition = TimelineItemGroupPosition.Last,
+                    timelineItemReactions = aTimelineItemReactions(count = 0),
                     messageShield = MessageShield.UnknownDevice(isCritical = true),
                 ),
             )
@@ -302,6 +332,7 @@ internal fun FlatTimelineItemEventRowPreview() = ElementPreview {
                             " hopefully can be manually adjusted to test different behaviors."
                     ),
                     groupPosition = TimelineItemGroupPosition.None,
+                    timelineItemReactions = aTimelineItemReactions(count = 0),
                 ),
             )
             ATimelineItemEventRow(
@@ -309,6 +340,19 @@ internal fun FlatTimelineItemEventRowPreview() = ElementPreview {
                     senderDisplayName = "Sender with a super long name that should ellipsize",
                     isMine = false,
                     content = aTimelineItemImageContent(aspectRatio = 2.5f),
+                    groupPosition = TimelineItemGroupPosition.None,
+                    timelineItemReactions = aTimelineItemReactions(count = 0),
+                ),
+            )
+            // A reply takes CommonLayout's EqualWidthColumn branch, which used to drop the
+            // modifier carrying the indent, width cap, clip and tap target.
+            ATimelineItemEventRow(
+                event = aTimelineItemEvent(
+                    senderDisplayName = "Bob",
+                    isMine = false,
+                    content = aTimelineItemTextContent(body = "Replying to you."),
+                    timelineItemReactions = aTimelineItemReactions(count = 0),
+                    inReplyTo = InReplyToDetailsProvider().values.first(),
                     groupPosition = TimelineItemGroupPosition.None,
                 ),
             )
