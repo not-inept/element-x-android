@@ -29,6 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
@@ -50,6 +52,7 @@ import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.LocalMessageLayoutMode
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.matrix.api.timeline.Timeline
+import io.element.android.libraries.matrix.api.timeline.item.event.MessageShield
 import io.element.android.libraries.matrix.ui.messages.sender.SenderName
 import io.element.android.libraries.matrix.ui.messages.sender.SenderNameMode
 import io.element.android.libraries.preferences.api.store.MessageLayoutMode
@@ -110,6 +113,12 @@ internal fun FlatTimelineItemEventRowContent(
     val showHeader = event.groupPosition.isNew()
     val isEventPinned = timelineRoomInfo.pinnedEventIds.contains(event.eventId)
 
+    // TimelineEventTimestampView is the only thing in the timeline that draws the send-failure
+    // icon and the encryption shield, and the only tap target for the shield dialog. The header
+    // carries it, so a message without a header would silently drop both. Put it back inline
+    // for those, and only for those, so the layout stays clean in the common case.
+    val needsInlineTimestamp = !showHeader && (event.failedToSend || event.messageShield != null)
+
     Column(modifier = modifier.fillMaxWidth()) {
         if (showHeader) {
             FlatMessageHeader(
@@ -146,6 +155,7 @@ internal fun FlatTimelineItemEventRowContent(
             inReplyToClick = inReplyToClick,
             eventSink = eventSink,
             layoutMode = MessageLayoutMode.FLAT,
+            hideTimestamp = !needsInlineTimestamp,
             bubbleModifier = Modifier
                 .testTag(TestTags.messageBubble)
                 .padding(
@@ -199,8 +209,13 @@ private fun FlatMessageHeader(
             .padding(horizontal = FLAT_ROW_HORIZONTAL_PADDING, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // TimelineItemRow already sets an explicit merged contentDescription carrying the
+        // sender name, so hide these the way the bubble layout's MessageSenderInformation
+        // does. The timestamp below is deliberately left visible to accessibility: it is
+        // what carries the send-failure and encryption-shield indicators.
         Avatar(
             modifier = Modifier
+                .clearAndSetSemantics { hideFromAccessibility() }
                 .testTag(TestTags.timelineItemSenderAvatar)
                 .clip(CircleShape)
                 .clickable(
@@ -214,7 +229,11 @@ private fun FlatMessageHeader(
         Spacer(modifier = Modifier.width(FLAT_AVATAR_SPACING))
         // Takes the remaining width so the timestamp is pushed to the end and a long
         // display name truncates rather than shoving the timestamp off-screen.
-        Box(modifier = Modifier.weight(1f)) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .clearAndSetSemantics { hideFromAccessibility() }
+        ) {
             SenderName(
                 modifier = Modifier
                     .testTag(TestTags.timelineItemSenderName)
@@ -261,13 +280,16 @@ internal fun FlatTimelineItemEventRowPreview() = ElementPreview {
                     groupPosition = TimelineItemGroupPosition.First,
                 ),
             )
-            // Same sender: no header, body stays indented under the name above.
+            // Same sender: no header, body stays indented under the name above. This one also
+            // carries a critical shield, so the timestamp comes back inline — without it the
+            // shield would have nowhere to render.
             ATimelineItemEventRow(
                 event = aTimelineItemEvent(
                     senderDisplayName = "Alice",
                     isMine = false,
                     content = aTimelineItemTextContent(body = "I can bring dessert."),
                     groupPosition = TimelineItemGroupPosition.Last,
+                    messageShield = MessageShield.UnknownDevice(isCritical = true),
                 ),
             )
             // Own message: rendered exactly like the others, header and all.

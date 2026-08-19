@@ -293,13 +293,14 @@ fun TimelineItemEventRow(
             // the summary is start-aligned and untinted there regardless of who sent it.
             val isFlat = LocalMessageLayoutMode.current == MessageLayoutMode.FLAT
             ThreadSummaryView(
-                modifier = when {
-                    isFlat -> Modifier.padding(start = FLAT_CONTENT_INDENT, end = FLAT_ROW_HORIZONTAL_PADDING)
-                    event.isMine -> Modifier
+                modifier = if (isFlat) {
+                    Modifier.padding(start = FLAT_CONTENT_INDENT, end = FLAT_ROW_HORIZONTAL_PADDING)
+                } else if (event.isMine) {
+                    Modifier
                         .align(Alignment.End)
                         .padding(end = 16.dp)
-                    timelineRoomInfo.isDm -> Modifier
-                    else -> Modifier.padding(start = 16.dp)
+                } else {
+                    if (timelineRoomInfo.isDm) Modifier else Modifier.padding(start = 16.dp)
                 }.padding(top = 2.dp),
                 threadSummary = event.threadInfo.summary,
                 latestEventText = event.threadInfo.latestEventText,
@@ -657,10 +658,14 @@ internal fun MessageEventBubbleContent(
     // need to rename this modifier to prevent linter false positives
     @Suppress("ModifierNaming")
     bubbleModifier: Modifier = Modifier,
-    // In the flat layout there is no bubble to sit inside: the timestamp moves up to the
-    // sender header and the horizontal padding that used to inset content from the bubble
-    // edge is dropped, since the content is already indented under the avatar.
+    // In the flat layout there is no bubble to sit inside, so the horizontal padding that
+    // used to inset content from the bubble edge is dropped: the row already indents the
+    // content under the avatar.
     layoutMode: MessageLayoutMode = MessageLayoutMode.BUBBLES,
+    // The flat layout normally carries the timestamp on the sender header instead of in the
+    // content flow. It is the caller's decision because a message with no header still needs
+    // somewhere to surface a send failure or an encryption shield.
+    hideTimestamp: Boolean = false,
     eventContentView: @Composable (Modifier, (ContentAvoidingLayoutData) -> Unit) -> Unit,
 ) {
     val isFlat = layoutMode == MessageLayoutMode.FLAT
@@ -890,10 +895,10 @@ internal fun MessageEventBubbleContent(
             event.content !is TimelineItemAttachmentsContent &&
             contentValidationState.hasError()
 
-    val timestampPosition = if (isFlat) {
-        // The flat layout renders the timestamp on the sender header line instead, so keep
-        // it out of the content flow entirely. This also bypasses ContentAvoidingLayout,
-        // which would otherwise reserve a gap for a timestamp that is never drawn.
+    val timestampPosition = if (hideTimestamp) {
+        // Keep the timestamp out of the content flow entirely. This also bypasses
+        // ContentAvoidingLayout, which would otherwise reserve a gap for a timestamp that
+        // is never drawn.
         TimestampPosition.Hidden
     } else if (needsInvalidContentLayout) {
         // The invalid content view will be displayed in all these cases, independent of the event content
